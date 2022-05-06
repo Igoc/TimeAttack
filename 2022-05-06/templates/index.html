@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+
+    <link href="https://fonts.googleapis.com/css?family=Stylish&display=swap" rel="stylesheet">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+
+    <title>나홀로 메모장</title>
+
+    <style>
+        * {
+            font-family: "Stylish", sans-serif;
+        }
+
+        .wrap {
+            width: 900px;
+            margin: auto;
+        }
+
+        #post-box {
+            width: 500px;
+            padding: 50px;
+            margin: 20px auto;
+            border: black solid;
+            border-radius: 5px;
+        }
+    </style>
+
+    <script>
+        let order = 'asc';
+
+        $(document).ready(function () {
+            showArticles();
+        });
+
+        function openClose() {
+            if ($('#post-box').css('display') == 'block') {
+                $('#post-box').hide();
+                $('#btn-post-box').text('포스팅 박스 열기');
+            } else {
+                $('#post-box').show();
+                $('#btn-post-box').text('포스팅 박스 닫기');
+            }
+        }
+
+        function postArticle() {
+            let title = $('#post-title').val();
+            let content = $('#post-content').val();
+            let pw = $('#post-pw').val();
+
+            $.ajax({
+                type: 'POST',
+                url: '/post',
+                data: {
+                    title: title,
+                    content: content,
+                    pw: pw
+                },
+                success: function (response) {
+                    if (response['result'] == 'success') {
+                        alert('포스팅 완료!');
+                        window.location.reload();
+                    } else {
+                        alert('서버 오류!');
+                    }
+                }
+            });
+        }
+
+        function showArticle(idx) {
+            $('#article-modal-content').empty();
+
+            $.ajax({
+                type: 'GET',
+                url: `/post?idx=${idx}`,
+                data: {},
+                success: function (response) {
+                    let post = response['post'];
+
+                    let temp_html = `<div class="modal-header">
+                                         <h5 class="modal-title">${post['title']}</h5>
+
+                                         <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="$('#article-modal').modal('hide')">
+                                             <span aria-hidden="true">&times;</span>
+                                         </button>
+                                     </div>
+
+                                     <div class="modal-body">
+                                         <p>${post['content']}</p>
+                                     </div>
+
+                                     <div class="modal-footer">
+                                         <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="$('#article-modal').modal('hide')">Close</button>
+                                     </div>`;
+
+                    $('#article-modal-content').append(temp_html);
+                    $('#article-modal').modal('show');
+
+                    showArticles();
+                }
+            });
+        }
+
+        function showArticles() {
+            $('#list-post').empty();
+
+            $.ajax({
+                type: 'GET',
+                url: `/posts?order=${order}`,
+                data: {},
+                success: function (response) {
+                    let posts = response['posts'];
+
+                    for (let index = 0; index < posts.length; index++) {
+                        let idx = posts[index]['idx'];
+                        let title = posts[index]['title'];
+                        let read_count = posts[index]['read_count'];
+                        let reg_date = posts[index]['reg_date'];
+
+                        makeListPost(index, idx, title, read_count, reg_date);
+                    }
+                }
+            });
+        }
+
+        function makeListPost(index, idx, title, read_count, reg_date) {
+            let temp_html = `<tr>
+                                <th>${index + 1}</th>
+                                <th>
+                                    <a href="javascript:showArticle(${idx})">${title}</a>
+                                </th>
+                                <th>${read_count}</th>
+                                <th>${reg_date}</th>
+                                <th>
+                                    <button class="btn btn-danger" onclick="window.location.href = '/detail/${idx}'">상세보기</button>
+                                </th>
+                            </tr>`;
+
+            $('#list-post').append(temp_html);
+        }
+
+        function setOrder() {
+            if (order == 'asc') {
+                order = 'desc';
+
+                $("#viewOrder").html(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="bi bi-arrow-up-square-fill">
+                                          <path d="M2 16a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2zm6.5-4.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 1 0z"/>
+                                      </svg>`);
+            } else {
+                order = 'asc';
+
+                $("#viewOrder").html(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-square-fill" viewBox="0 0 16 16">
+                                          <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5a.5.5 0 0 1 1 0z"/>
+                                      </svg>`);
+            }
+
+            showArticles();
+        }
+    </script>
+</head>
+<body>
+<div id="article-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div id="article-modal-content" class="modal-content"></div>
+    </div>
+</div>
+
+<div class="wrap">
+    <div class="jumbotron">
+        <h1 class="display-4">나홀로 메모장!</h1>
+
+        <hr class="my-4">
+
+        <p class="lead">
+            <button id="btn-post-box" class="btn btn-primary" onclick="openClose()">포스팅 박스 열기</button>
+        </p>
+    </div>
+
+    <div id="post-box" class="form-post" style="display: none">
+        <div>
+            <div class="form-group">
+                <label for="post-title">제목</label>
+                <input type="text" id="post-title" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="post-pw">비밀번호</label>
+                <input type="password" id="post-pw" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="post-content">간단한 내용</label>
+                <textarea rows="2" id="post-content" class="form-control"></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="postArticle()">기사 저장</button>
+        </div>
+    </div>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">타이틀</th>
+            <th scope="col">
+                조회수
+                <span id="viewOrder" onclick="setOrder()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                         class="bi bi-arrow-down-square-fill" viewBox="0 0 16 16">
+                        <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5a.5.5 0 0 1 1 0z"/>
+                    </svg>
+                </span>
+            </th>
+            <th scope="col">날짜</th>
+            <th scope="col">상세보기</th>
+        </tr>
+        </thead>
+        <tbody id="list-post">
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
